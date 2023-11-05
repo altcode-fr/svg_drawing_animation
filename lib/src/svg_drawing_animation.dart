@@ -19,8 +19,8 @@ class SvgDrawingAnimation extends StatefulWidget {
       this.loadingWidgetBuilder = defaultLoadingWidgetBuilder,
       this.errorWidgetBuilder = defaultErrorWidgetBuilder,
       this.penRenderer})
-      : assert(!(duration == null && speed == null && animation == null),
-            'You must set a duration, speed or animation.'),
+      : assert(
+            !(duration == null && speed == null && animation == null), 'You must set a duration, speed or animation.'),
         assert(
             animation == null && duration != null && speed == null ||
                 animation == null && speed != null && duration == null ||
@@ -57,10 +57,10 @@ class SvgDrawingAnimation extends StatefulWidget {
   final PenRenderer? penRenderer;
 
   /// Computes the total length of paths in SVG.
-  static double getPathLengthSum(Drawable drawable) {
+  static double getPathLengthSum(PictureInfo drawable) {
     final c = MeasurePathLengthCanvas();
     // TODO: pass proper values to bounds.
-    drawable.draw(c, const Rect.fromLTRB(0, 0, 1, 1));
+    c.drawPicture(drawable.picture);
     return c.pathLengthSum;
   }
 
@@ -68,8 +68,7 @@ class SvgDrawingAnimation extends StatefulWidget {
   State<SvgDrawingAnimation> createState() => _SvgDrawingAnimationState();
 }
 
-class _SvgDrawingAnimationState extends State<SvgDrawingAnimation>
-    with SingleTickerProviderStateMixin {
+class _SvgDrawingAnimationState extends State<SvgDrawingAnimation> with SingleTickerProviderStateMixin {
   _SvgDrawingAnimationState();
 
   bool isInitialized = false;
@@ -100,8 +99,7 @@ class _SvgDrawingAnimationState extends State<SvgDrawingAnimation>
             return widget.loadingWidgetBuilder(context);
           }
           if (snapshot.hasError) {
-            return widget.errorWidgetBuilder(
-                context, snapshot.error!, snapshot.stackTrace);
+            return widget.errorWidgetBuilder(context, snapshot.error!, snapshot.stackTrace);
           }
           final drawable = snapshot.data!;
           // Compute total length and set up animation;
@@ -110,12 +108,9 @@ class _SvgDrawingAnimationState extends State<SvgDrawingAnimation>
             isInitialized = true;
 
             if (animation == null) {
-              final duration = widget.duration ??
-                  Duration(
-                      milliseconds: 1000 * totalPathLength ~/ widget.speed!);
+              final duration = widget.duration ?? Duration(milliseconds: 1000 * totalPathLength ~/ widget.speed!);
               controller = AnimationController(duration: duration, vsync: this);
-              animation =
-                  CurvedAnimation(parent: controller!, curve: widget.curve);
+              animation = CurvedAnimation(parent: controller!, curve: widget.curve);
               if (widget.repeats) {
                 controller!.repeat();
               } else {
@@ -128,11 +123,10 @@ class _SvgDrawingAnimationState extends State<SvgDrawingAnimation>
               builder: (context, child) {
                 return FittedBox(
                     child: SizedBox.fromSize(
-                        size: drawable.viewport.viewBox,
+                        size: drawable.size,
                         child: CustomPaint(
                             painter: ClippedPathPainter(snapshot.data!,
-                                pathLengthLimit:
-                                    animation!.value * totalPathLength,
+                                pathLengthLimit: animation!.value * totalPathLength,
                                 penRenderer: widget.penRenderer))));
               });
         });

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_svg/parser.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mockito/annotations.dart';
@@ -28,15 +27,11 @@ const kanjiLength = 455.5347023010254;
 @GenerateMocks([http.Client])
 void main() {
   test('length', () async {
-    final parser = SvgParser();
+    expect(SvgDrawingAnimation.getPathLengthSum(await vg.loadPicture(const SvgStringLoader(lineSvg), null)), 2);
     expect(
-        SvgDrawingAnimation.getPathLengthSum(await parser.parse(lineSvg)), 2);
-    expect(SvgDrawingAnimation.getPathLengthSum(await parser.parse(kanjiSvg)),
-        kanjiLength);
+        SvgDrawingAnimation.getPathLengthSum(await vg.loadPicture(const SvgStringLoader(kanjiSvg), null)), kanjiLength);
     expect(
-        (SvgDrawingAnimation.getPathLengthSum(
-                    await SvgProvider.file(File('test/African_Elephant.svg'))
-                        .svg) -
+        (SvgDrawingAnimation.getPathLengthSum(await SvgProvider.file(File('test/African_Elephant.svg')).svg) -
                 3459.3614106178284)
             .abs(),
         lessThan(.1));
@@ -44,32 +39,19 @@ void main() {
 
   testWidgets('clipped path painter', (widgetTester) async {
     await renderClippedPathPainterAndCheckGoldens(
-        widgetTester,
-        'kanji_10_percent',
-        await SvgProvider.string(kanjiSvg).resolve(),
-        .1 * kanjiLength);
+        widgetTester, 'kanji_10_percent', await SvgProvider.string(kanjiSvg).resolve(), .1 * kanjiLength);
     await renderClippedPathPainterAndCheckGoldens(
-        widgetTester,
-        'kanji_50_percent',
-        await SvgProvider.string(kanjiSvg).resolve(),
-        .5 * kanjiLength);
+        widgetTester, 'kanji_50_percent', await SvgProvider.string(kanjiSvg).resolve(), .5 * kanjiLength);
     await renderClippedPathPainterAndCheckGoldens(
-        widgetTester,
-        'kanji_100_percent',
-        await SvgProvider.string(kanjiSvg).resolve(),
-        1.0 * kanjiLength);
+        widgetTester, 'kanji_100_percent', await SvgProvider.string(kanjiSvg).resolve(), 1.0 * kanjiLength);
   });
 
-  test('network error shows the network error instead of a XML parsing error',
-      () async {
+  test('network error shows the network error instead of a XML parsing error', () async {
     final client = MockClient();
 
     when(client.get(Uri.parse('https://notfound/img.svg'))).thenAnswer(
-        (_) async => http.Response(
-            'https://notfound/img.svg was not found', 404,
-            reasonPhrase: 'Not found'));
-    expect(
-        () => SvgProvider.network('https://notfound/img.svg', client).resolve(),
+        (_) async => http.Response('https://notfound/img.svg was not found', 404, reasonPhrase: 'Not found'));
+    expect(() => SvgProvider.network('https://notfound/img.svg', client).resolve(),
         throwsA('Not found: https://notfound/img.svg was not found'));
   });
 
@@ -77,18 +59,14 @@ void main() {
     // Check that it throws a FlutterError. The message states it cant't find
     // the asset but I can't figure out how to match partial content of the
     // FlutterError message.
-    expect(() => SvgProvider.asset('unknown-asset').resolve(),
-        throwsA(isA<FlutterError>()));
+    expect(() => SvgProvider.asset('unknown-asset').resolve(), throwsA(isA<FlutterError>()));
   });
 
   test('network caching', () async {
     final client = MockClient();
-    when(client.get(any)).thenAnswer(
-        (_) async => http.Response('<svg width="1" height="1"></svg>', 200));
-    expect(SvgProvider.network('same url', client),
-        SvgProvider.network('same url', client));
-    expect(SvgProvider.network('unique url', client),
-        isNot(SvgProvider.network('another url', client)));
+    when(client.get(any)).thenAnswer((_) async => http.Response('<svg width="1" height="1"></svg>', 200));
+    expect(SvgProvider.network('same url', client), SvgProvider.network('same url', client));
+    expect(SvgProvider.network('unique url', client), isNot(SvgProvider.network('another url', client)));
   });
 
   test('parameter checks', () {
@@ -141,15 +119,13 @@ void main() {
 
   group('rendering', () {
     testWidgets('from string', (widgetTester) async {
-      await renderAndCheckGoldens(
-          widgetTester, 'kanji', SvgProvider.string(kanjiSvg));
+      await renderAndCheckGoldens(widgetTester, 'kanji', SvgProvider.string(kanjiSvg));
     });
     testWidgets('from file', (widgetTester) async {
-      await renderAndCheckGoldens(widgetTester, 'elephant',
-          SvgProvider.file(File('test/African_Elephant.svg')));
+      await renderAndCheckGoldens(widgetTester, 'elephant', SvgProvider.file(File('test/African_Elephant.svg')));
     });
     testWidgets('error', (widgetTester) async {
-      final Completer<DrawableRoot> completer = Completer();
+      final Completer<PictureInfo> completer = Completer();
       final m = SvgProvider.future(completer.future);
       await widgetTester.pumpWidget(MaterialApp(
         title: 'Flutter Demo',
@@ -199,8 +175,7 @@ void main() {
   });
 }
 
-Future<void> renderAndCheckGoldensWidget(
-    WidgetTester widgetTester, String description, Widget widget) async {
+Future<void> renderAndCheckGoldensWidget(WidgetTester widgetTester, String description, Widget widget) async {
   await widgetTester.pumpWidget(MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -208,17 +183,13 @@ Future<void> renderAndCheckGoldensWidget(
       ),
       home: Scaffold(
           appBar: AppBar(title: const Text('Example')),
-          body: Center(
-              child: Card(
-                  child: SizedBox(width: 300, height: 300, child: widget))))));
+          body: Center(child: Card(child: SizedBox(width: 300, height: 300, child: widget))))));
   await widgetTester.pumpAndSettle(const Duration(seconds: 20));
 
-  await expectGoldenMatches(
-      find.byType(MaterialApp), 'render_$description.png');
+  await expectGoldenMatches(find.byType(MaterialApp), 'render_$description.png');
 }
 
-Future<void> renderAndCheckGoldens(WidgetTester widgetTester,
-    String description, SvgProvider svgProvider) async {
+Future<void> renderAndCheckGoldens(WidgetTester widgetTester, String description, SvgProvider svgProvider) async {
   await renderAndCheckGoldensWidget(
       widgetTester,
       description,
@@ -229,8 +200,8 @@ Future<void> renderAndCheckGoldens(WidgetTester widgetTester,
       ));
 }
 
-Future<void> renderClippedPathPainterAndCheckGoldens(WidgetTester widgetTester,
-    String description, DrawableRoot svg, double pathLengthLimit) async {
+Future<void> renderClippedPathPainterAndCheckGoldens(
+    WidgetTester widgetTester, String description, PictureInfo svg, double pathLengthLimit) async {
   await widgetTester.pumpWidget(MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
@@ -241,18 +212,16 @@ Future<void> renderClippedPathPainterAndCheckGoldens(WidgetTester widgetTester,
         body: SizedBox.expand(
           child: FittedBox(
               child: SizedBox.fromSize(
-                  size: svg.viewport.viewBox,
+                  size: svg.size,
                   child: CustomPaint(
-                    painter: ClippedPathPainter(svg,
-                        pathLengthLimit: pathLengthLimit),
+                    painter: ClippedPathPainter(svg, pathLengthLimit: pathLengthLimit),
                   ))),
         ),
       )));
 
   await widgetTester.pumpAndSettle();
 
-  await expectGoldenMatches(
-      find.byType(MaterialApp), 'clipped_path_$description.png');
+  await expectGoldenMatches(find.byType(MaterialApp), 'clipped_path_$description.png');
 }
 
 class FixedAnimation implements ValueListenable<double> {

@@ -5,13 +5,13 @@ repository: https://github.com/atn832/svg_drawing_animation
 homepage: https://www.wafrat.com
 
 environment:
-  sdk: '>=2.18.0 <3.0.0'
+  sdk: ">=3.1.4 <4.0.0"
   flutter: ">=1.17.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  flutter_svg: ^1.1.6
+  flutter_svg:
   http: ^0.13.5
   vector_math: ^2.1.2
 
